@@ -18,56 +18,60 @@
 
 2、各种变量 是否running  颜色设置等等
 
-3、一堆的block回调
+3、可能造成的一堆block回调
 
-![image-20181114140253130](https://ws1.sinaimg.cn/large/006tNbRwly1fx7k0grkzoj30oi058765.jpg)
+```objective-c
+typedef NSString *(^CountDownTitleChange)(NSUInteger count);
+
+typedef NSString *(^CountDownTitleCompletion)(void);
+
+typedef BOOL (^CountDownEnableBlock)(void);
+```
+
+
 
 ```objective-c
 
 @interface CMTCountDownButton : UIButton
 
-///**
-// 剩余几秒文案
-// */
-//@property (nonatomic, copy) CountDownTitleChange countDownTitleChange;
-//
-///**
-// 计时器停止时显示文案
-// */
-//@property (nonatomic, copy) CountDownTitleCompletion countDownTitleCompletion;
-//
-//@property (nonatomic, copy) CountDownEnableBlock countDownEnableBlock;
-//
-//@property (nonatomic, strong) UIColor *enableColor;
-//
-//@property (nonatomic, strong) UIColor *disableColor;
-//
-//@property (nonatomic, getter=isRunning) BOOL running;
+/**
+ 剩余几秒文案
+ */
+@property (nonatomic, copy) CountDownTitleChange countDownTitleChange;
 
+/**
+ 计时器停止时显示文案
+ */
+@property (nonatomic, copy) CountDownTitleCompletion countDownTitleCompletion;
+
+@property (nonatomic, copy) CountDownEnableBlock countDownEnableBlock;
+
+@property (nonatomic, strong) UIColor *enableColor;
+
+@property (nonatomic, strong) UIColor *disableColor;
+
+@property (nonatomic, getter=isRunning) BOOL running;
+
+/**
+ 开始一个长达second的倒计时
+ 
+ @param second 倒计时总秒数
+ */
+- (void)startToCountDownInSeconds:(NSUInteger)second;
 
 @end
+
 
 ```
 
 ```objective-c
-//
-//  CMTCountDownButton.m
-//  CMTApp
-//
-//  Created by qiuyuliang on 2018/9/25.
-//  Copyright © 2018年 ucarinc.com. All rights reserved.
-//
-
 #import "CMTCountDownButton.h"
 
 @interface CMTCountDownButton() {
-//    NSTimer *_timer;
+    NSTimer *_timer;
+    NSUInteger _totalSecond;//总秒数
+    NSUInteger _second;//剩余秒数
 }
-
-
-//@property(nonatomic, readwrite, assign) NSUInteger totalSecond;//总秒数
-//
-//@property(nonatomic, readwrite, assign) NSUInteger second;//剩余秒数
 
 @end
 
@@ -76,61 +80,71 @@
 
 #pragma mark - Public
 
-//
-//#pragma mark - Private
-//
-//- (void)stopCountDown {
-//    if ([_timer isValid]) {
-//        [_timer invalidate];
-//        _second = _totalSecond;
-//    }
-//}
-//
-//- (BOOL)isRunning {
-//    return [_timer isValid];
-//}
-//
-//#pragma mark - IBActions
-//
-//- (void)timerStart:(NSTimer *)timer {
-//    
-//    if (_second == 0) {
-//        self.enabled = YES;
-//        if (self.countDownTitleCompletion) {
-//            [self setTitle:self.countDownTitleCompletion() forState:UIControlStateNormal];
-//        } else {
-//            [self setTitle:@"发送验证码" forState:UIControlStateNormal];
-//        }
-//        
-//        [self setTitleColor:self.enableColor forState:UIControlStateNormal];
-//        
-//        [self stopCountDown];
-//        
-//        if (self.countDownEnableBlock) {
-//            BOOL enable = self.countDownEnableBlock();
-//            if (enable) {
-//                self.enabled = YES;
-//                [self setTitleColor:self.enableColor forState:UIControlStateNormal];
-//            } else {
-//                self.enabled = NO;
-//                [self setTitleColor:self.disableColor forState:UIControlStateNormal];
-//            }
-//        }
-//        
-//    } else {
-//        if (self.countDownTitleChange) {
-//            NSString *title = self.countDownTitleChange(_second);
-//            [self setTitle:title forState:UIControlStateNormal];
-//        } else {
-//            NSString *title = [NSString stringWithFormat:@"还剩%lu秒", (unsigned long)_second];
-//            [self setTitle:title forState:UIControlStateNormal];
-//        }
-//        [self setTitleColor:self.disableColor forState:UIControlStateNormal];
-//        _second --;
-//    }
-//}
+- (void)startToCountDownInSeconds:(NSUInteger)seconds {
+    self.enabled = NO;
+    _totalSecond = seconds;
+    _second = seconds;
+    _timer = [NSTimer scheduledTimerWithTimeInterval:1.0 target:self selector:@selector(timerStart:) userInfo:nil repeats:YES];
+    [[NSRunLoop currentRunLoop] addTimer:_timer forMode:NSRunLoopCommonModes];
+    [_timer fire];
+}
+
+
+#pragma mark - Private
+
+- (void)stopCountDown {
+    if ([_timer isValid]) {
+        [_timer invalidate];
+        _second = _totalSecond;
+    }
+}
+
+- (BOOL)isRunning {
+    return [_timer isValid];
+}
+
+#pragma mark - IBActions
+
+- (void)timerStart:(NSTimer *)timer {
+    
+    if (_second == 0) {
+        self.enabled = YES;
+        if (self.countDownTitleCompletion) {
+            [self setTitle:self.countDownTitleCompletion() forState:UIControlStateNormal];
+        } else {
+            [self setTitle:@"发送验证码" forState:UIControlStateNormal];
+        }
+        
+        [self setTitleColor:self.enableColor forState:UIControlStateNormal];
+        
+        [self stopCountDown];
+        
+        if (self.countDownEnableBlock) {
+            BOOL enable = self.countDownEnableBlock();
+            if (enable) {
+                self.enabled = YES;
+                [self setTitleColor:self.enableColor forState:UIControlStateNormal];
+            } else {
+                self.enabled = NO;
+                [self setTitleColor:self.disableColor forState:UIControlStateNormal];
+            }
+        }
+        
+    } else {
+        if (self.countDownTitleChange) {
+            NSString *title = self.countDownTitleChange(_second);
+            [self setTitle:title forState:UIControlStateNormal];
+        } else {
+            NSString *title = [NSString stringWithFormat:@"还剩%lu秒", (unsigned long)_second];
+            [self setTitle:title forState:UIControlStateNormal];
+        }
+        [self setTitleColor:self.disableColor forState:UIControlStateNormal];
+        _second --;
+    }
+}
 
 @end
+
 
 ```
 
@@ -140,19 +154,85 @@
 
 比如控制是否能继续点击啊，还有颜色的设置啊，网络请求啊，还有各种各种。。。
 
-比如如下：
+比如UIView类：
 
-uiview类
+ CMTVerificationCodeTextField.m
 
-![image-20181114141455312](https://ws4.sinaimg.cn/large/006tNbRwly1fx7kcxwuw4j310e0gqdno.jpg)
+```objective-c
+- (CMTCountDownButton *)button {
+    if (!_button) {
+        _button = [CMTCountDownButton buttonWithType:UIButtonTypeCustom];
+        _button.contentHorizontalAlignment = UIControlContentHorizontalAlignmentRight;
+        _button.titleLabel.font = MainFont(16);
+        [_button setTitle:@"发送验证码" forState:UIControlStateNormal];
+        [_button setTitleColor:UIColorFromRGB(0xF12E49) forState:UIControlStateNormal];
+        _button.countDownTitleChange = ^NSString *(NSUInteger count) {
+            return [NSString stringWithFormat:@"%luS", (unsigned long)count];
+        };
+        _button.countDownTitleCompletion = ^NSString *{
+            return @"重新发送";
+        };
+        _button.enableColor = UIColorFromRGB(0xF12E49);
+        _button.disableColor = UIColorFromRGB(0x666666);
+    }
+    return _button;
+}
+```
 
-![image-20181114140952472](https://ws1.sinaimg.cn/large/006tNbRwly1fx7k7t6g6mj31kw0zw4px.jpg)
+CMTForgetPwdView
 
-view controller 类
+```objective-c
+    if (self.verificationCodeTextField.button.isRunning) {
+        return;
+    }
+    
+    if (self.accountTextField.text.length < 11) {
+        self.verificationCodeTextField.button.enabled = NO;
+        [self.verificationCodeTextField.button setTitleColor:self.verificationCodeTextField.button.disableColor forState:UIControlStateNormal];
+    } else {
+        self.verificationCodeTextField.button.enabled = YES;
+        [self.verificationCodeTextField.button setTitleColor:self.verificationCodeTextField.button.enableColor forState:UIControlStateNormal];
+    }
+```
 
-![image-20181114141131652](https://ws2.sinaimg.cn/large/006tNbRwly1fx7k9ej0ozj31da0kgwou.jpg)
+UIViewcontroller 类
 
-![image-20181114141550917](https://ws1.sinaimg.cn/large/006tNbRwly1fx7kdw2nfzj31j606odlh.jpg)
+CMTForgetPwdViewController  按钮点击实现 ，网络请求等等
+
+```objective-c
+- (void)countDownAction:(CMTCountDownButton *)button {
+    
+    [self.view endEditing:YES];
+    
+    NSString *phone = self.stepTwoView.accountTextField.textField.text;
+    
+    [self.view showLoad];
+    [self.loginViewModel getVerifyCodeRequest:phone type:CMTVerifyForgetPhone completionBlock:^(NSError *error, CMTVerifyCodeModel *model) {
+        [self.view hiddenLoading];
+        if (error) {
+            NSDictionary *userinfo = error.userInfo;
+            if (userinfo) {
+                NSString *errorStr = [userinfo objectForKey:@"NSLocalizedDescription"];
+                if (![NSString isBlankString:errorStr]) {
+                    NSLog(@"errorStr = %@",errorStr);
+                    [self.view makeToast:errorStr];
+                }
+            }
+        } else {
+            [self.view makeToast:@"短信验证码已发送"];
+            [button startToCountDownInSeconds:60];
+            
+        }
+    }];
+}
+```
+
+```objective-c
+[_stepTwoView.verificationCodeTextField.button addTarget:self action:@selector(countDownAction:) forControlEvents:UIControlEventTouchUpInside];
+
+```
+
+
 
 ##### 玉良书记这个写法，看上去也还是不错的。起码可读性100分，日后维护简单方便，无非要多码一些代码。
 
@@ -466,7 +546,6 @@ timesignal subscribeNext 这里去启动计时器。
 }
 ```
 
-emmmm....这样我们在子类去实现一遍bindViewModel 就可以愉快的绑定RAC的相关信号了。
-
+emmmm....这样我们在子类去实现一遍*bindViewModel* 就可以愉快的绑定RAC的相关信号了。
 
 
