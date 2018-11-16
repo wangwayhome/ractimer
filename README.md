@@ -150,7 +150,7 @@ typedef BOOL (^CountDownEnableBlock)(void);
 
 
 
-并且分散在view controller和uiview中的 有涉及到按钮调用的地方，都要设置如下代码。
+并且分散在UIViewcontroller和UIView中的 有涉及到按钮调用的地方，都要设置如下代码。
 
 比如控制是否能继续点击啊，还有颜色的设置啊，网络请求啊，还有各种各种。。。
 
